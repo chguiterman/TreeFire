@@ -189,7 +189,7 @@ server <- function(input, output, session) {
       return(quga_dat)
     }
     if (input$get_fhx) {
-      search_meta()[[2]] %>%
+      search_meta() %>%
         filter(studyCode %in% gsub(".*[(]([^.]+)[)]", "\\1", input$sitePicker)) %>%
         mutate(FHX = map(studyCode, ~ get_impd_fhx(.x)))
     }
