@@ -13,7 +13,7 @@ library(shinyWidgets)
 # Define UI
 
 ui <- navbarPage(
-    title = "rIMPD",
+    title = "TreeFire",
     id = "navbar",
     # 1st tab -- Search IMPD ----
     tabPanel(title = "Search the IMPD", value="tab1",
@@ -34,6 +34,12 @@ ui <- navbarPage(
                              size = 10,
                              `selected-text-format` = "count > 3"
                          )),
+                     fileInput(inputId = "filemap",
+                               label = h5("Upload a polygon file"),
+                               accept=c('kml', '.shp','.dbf','.sbn','.sbx','.shx','.prj','.cpg'),
+                               multiple=TRUE,
+                               width = '100%'
+                               ),
                      pickerInput(
                          inputId = "species",
                          label = h5("Species"),
@@ -74,7 +80,7 @@ ui <- navbarPage(
                      ),
                      sliderInput(
                          inputId = "elevation",
-                         label = h5("Elevation range"),
+                         label = h5("Elevation range (in masl)"),
                          min = 0,
                          max = ceiling(max(impd_meta$elevation, na.rm=TRUE)),
                          value = c(0,
@@ -88,7 +94,7 @@ ui <- navbarPage(
                          max = 65,
                          value = c(18, 52),
                          step = .25,
-                         round = 0),
+                         round = 2),
                      sliderInput(
                          inputId = "longitude",
                          label = h5("Longitudinal range"),
@@ -96,7 +102,7 @@ ui <- navbarPage(
                          max = -75,
                          value = c(-125, -75),
                          step = .25,
-                         round = 0),
+                         round = 2),
                      fluidRow(
                          align = "center",
                          column(6,
@@ -117,7 +123,6 @@ ui <- navbarPage(
                                   br(),
                                   br(),
                                   leafletOutput("impd_map")),
-
                          tabPanel("Table",
                                   downloadButton("downloadData", "Download table as .csv"),
                                   br(),

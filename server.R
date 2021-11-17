@@ -4,6 +4,9 @@ library(purrr)
 library(burnr)
 library(zip)
 library(ggplot2)
+library(tools)
+library(sf)
+source("helpers.R")
 
 # Load example data
 load("data/quga_dat.rda")
@@ -18,6 +21,34 @@ server <- function(input, output, session) {
     if (input$location == "") return(NULL)
     else return(input$location)
   })
+  # Polygon upload
+  poly_data <- reactiveValues()  # Declare datasets and update by reactive
+  poly_data$poly <- NULL
+  poly_data$bbox <- NULL
+
+  poly_upload <- eventReactive(input$filemap, {
+    in_file <- input$filemap
+    if (is.null(in_file)) {
+      return(NULL)
+    } else {
+      ext <- file_ext(in_file$name)
+      if (any(ext %in% c('shp','dbf','sbn','sbx','shx','prj','cpg'))) {
+        validate(
+          need(
+            ext %in% 'prj',
+            "Please include a geographic projection file ('.prj') with your ESRI shapefile"
+          ))
+        poly <- Read_Shapefile(input$filemap) %>%
+          st_transform(4326)
+      } else {
+        validate(need(ext == "kml", "Please upload a .kml from Google Earth or an ESRI shapefile"))
+        poly <- read_sf(in_file$datapath)
+      }
+      poly_data$poly <- poly
+      poly_data$bbox <- st_bbox(poly)
+    }
+  }
+  )
   # Species selection
   spp_available <- reactive({
     spp_dat <- get_search_params("species")
@@ -32,7 +63,7 @@ server <- function(input, output, session) {
   input_spp <- eventReactive(input$search_button, {
     if (input$species == "") {
       return(NULL)
-    } else gsub(".*[(]([^.]+)[)]", "\\1", input$species)
+    } else return(gsub(".*[(]([^.]+)[)]", "\\1", input$species))
   })
   # Investigator selection
   input_inv <- eventReactive(input$search_button, {
@@ -45,12 +76,33 @@ server <- function(input, output, session) {
     c(input$elevation[1], input$elevation[2])
   })
   # Latitude
+  observeEvent(poly_upload(), {
+    updateSliderInput(session = session,
+                      inputId = "latitude",
+                      value = c(poly_data$bbox[[2]],
+                                poly_data$bbox[[4]])
+    )}
+  )
+  # observeEvent(poly_upload(), {
+  #   updateSliderInput(session = session,
+  #                     inputId = "latitude",
+  #                     value = c(poly_upload()[[2]][[2]],
+  #                               poly_upload()[[2]][[4]])
+  #   )}
+  # )
   input_lat <- eventReactive(input$search_button, {
-    c(input$latitude[1], input$latitude[2])
+      return(c(input$latitude[1], input$latitude[2]))
   })
   # Longitude
+  observeEvent(poly_upload(), {
+    updateSliderInput(session = session,
+                      inputId = "longitude",
+                      value = c(poly_data$bbox[[1]],
+                                poly_data$bbox[[3]])
+    )}
+  )
   input_lon <- eventReactive(input$search_button, {
-    c(input$longitude[1], input$longitude[2])
+      return(c(input$longitude[1], input$longitude[2]))
   })
   # Inner year
   input_first_yr <- eventReactive(input$search_button, {
@@ -74,7 +126,8 @@ server <- function(input, output, session) {
 
   impd_api_result <- eventReactive(input$search_button, {
     showNotification("Searching")
-    ncei_paleo_api(investigators = input_inv(),
+    tryCatch({
+      ncei_paleo_api(investigators = input_inv(),
                    location = input_loc(),
                    species = input_spp(),
                    minElev = input_elev()[1],
@@ -86,16 +139,31 @@ server <- function(input, output, session) {
                    earliestYear = input_first_yr(),
                    latestYear = input_last_yr()
     )
+    },
+    warning = function(warn){
+      showNotification(paste0(warn), type = 'warning')
+      return()
+    },
+    error = function(err){
+      showNotification(paste0(err), type = 'err')
+      return()
+    }, silent=TRUE)
   })
 
-  search_meta <- reactive({
-    if (input$search_button) {
-      return(build_impd_meta(impd_api_result()))
+  search_meta <- eventReactive(impd_api_result(), {
+    out <- build_impd_meta(impd_api_result())
+    if (!is.null(poly_data$poly)) {
+      out <- out %>%
+        st_as_sf(coords = c("longitude", "latitude"),
+                 remove=FALSE, crs=4326) %>%
+        filter(st_intersects(x=., y=poly_data$poly, sparse = FALSE))
     }
+    return(out)
+
     if (input$useDemoData) {
       return(quga_dat %>%
                select(-FHX)
-             )
+      )
     }
   })
 
@@ -132,7 +200,20 @@ server <- function(input, output, session) {
       ) %>%
       fitBounds(-125, 15, -73, 51.5)
   })
-
+  observeEvent(poly_upload(), {
+    leafletProxy("impd_map", data = poly_data$poly) %>%
+      addPolygons(data = poly_data$poly) %>%
+      fitBounds(poly_data$bbox[[1]], poly_data$bbox[[2]],
+                poly_data$bbox[[3]], poly_data$bbox[[4]]) %>%
+      addMiniMap(
+        tiles = providers$Esri.WorldImagery,
+        position = 'topright',
+        width = 50, height = 50,
+        toggleDisplay = FALSE,
+        zoomLevelOffset = -8
+        # zoomLevelFixed = TRUE
+        )
+  })
   observeEvent(search_map_df(), {
     leafletProxy("impd_map", data = search_map_df()) %>%
       clearMarkers() %>%
@@ -156,8 +237,20 @@ server <- function(input, output, session) {
         position = 'topright',
         width = 50, height = 50,
         toggleDisplay = FALSE,
-        zoomLevelFixed = TRUE)
-
+        zoomLevelOffset = -8
+        # zoomLevelFixed = TRUE
+        )
+  })
+  observeEvent(input$reset_impd_search, {
+    leafletProxy("impd_map", data = impd_meta) %>%
+      clearMarkers() %>%
+      clearShapes() %>%
+      addCircleMarkers(radius = 4,
+                       fillOpacity = .2,
+                       weight = 1,
+                       fillColor = "yellow",
+                       color = "yellow") %>%
+      fitBounds(-125, 15, -73, 51.5)
   })
 
   # Table tab ---------------------------------------------------------------
