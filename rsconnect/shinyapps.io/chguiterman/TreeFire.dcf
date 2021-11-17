@@ -5,8 +5,8 @@ account: chguiterman
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 4928018
-bundleId: 5163831
+bundleId: 5166402
 url: https://chguiterman.shinyapps.io/TreeFire/
-when: 1634844000.03456
+when: 1634904734.46698
 asMultiple: FALSE
 asStatic: FALSE
