@@ -119,6 +119,8 @@ server <- function(input, output, session) {
   # reset inputs
   observeEvent(input$reset_impd_search, {
     reset("impd_search_panel")
+    poly_data$poly <- NULL
+    poly_data$bbox <- NULL
   })
 
 
