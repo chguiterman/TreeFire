@@ -17,6 +17,12 @@ impd_meta <- read.csv("./data/impd_meta.csv") %>%
 ui <- navbarPage(
     title = "TreeFire",
     id = "navbar",
+    # Intro tab ----
+    tabPanel(title = "Introduction", value = "tab0",
+             mainPanel(
+               includeMarkdown("docs/text_intro.rmd")
+             )
+    ),
     # 1st tab -- Search IMPD ----
     tabPanel(title = "Search the IMPD", value="tab1",
              sidebarLayout(
