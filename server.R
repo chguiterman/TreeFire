@@ -187,12 +187,6 @@ server <- function(input, output, session) {
 
   # Map tab ----------------------------------------------------------------
 
-<<<<<<< HEAD
-=======
-  # impd_meta <- read.csv("data/impd_meta.csv") %>%
-  #   st_as_sf(coords = c("longitude", "latitude"), crs=4326)
->>>>>>> 664e55a8331b03ba678b325b975eeef560755045
-
   search_map_df <- eventReactive(search_meta(), {
       search_meta() %>%
         st_as_sf(coords = c("longitude", "latitude"),
