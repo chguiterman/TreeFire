@@ -8,8 +8,11 @@ library(tools)
 library(sf)
 source("helpers.R")
 
-# Load example data
-load("data/quga_dat.rda")
+# Load data
+load("./data/quga_dat.rda")
+
+impd_meta <- read.csv("./data/impd_meta.csv") %>%
+  st_as_sf(coords = c("longitude", "latitude"), crs=4326)
 
 # Define server
 server <- function(input, output, session) {
@@ -176,8 +179,8 @@ server <- function(input, output, session) {
 
   # Map tab ----------------------------------------------------------------
 
-  impd_meta <- read.csv("data/impd_meta.csv") %>%
-    st_as_sf(coords = c("longitude", "latitude"), crs=4326)
+  # impd_meta <- read.csv("data/impd_meta.csv") %>%
+  #   st_as_sf(coords = c("longitude", "latitude"), crs=4326)
 
   search_map_df <- eventReactive(search_meta(), {
       search_meta() %>%

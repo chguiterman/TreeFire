@@ -9,6 +9,8 @@ library(lubridate)
 library(shinyjs)
 library(shinyWidgets)
 
+impd_meta <- read.csv("./data/impd_meta.csv") %>%
+  st_as_sf(coords = c("longitude", "latitude"), crs=4326)
 
 # Define UI
 
