@@ -7,7 +7,12 @@ library(ggplot2)
 library(tools)
 library(sf)
 source("helpers.R")
-# load("data/base_data.rda")
+
+# Load data
+load("./data/quga_dat.rda")
+
+impd_meta <- read.csv("./data/impd_meta.csv") %>%
+  st_as_sf(coords = c("longitude", "latitude"), crs=4326)
 
 
 # Define server
@@ -182,6 +187,11 @@ server <- function(input, output, session) {
 
   # Map tab ----------------------------------------------------------------
 
+<<<<<<< HEAD
+=======
+  # impd_meta <- read.csv("data/impd_meta.csv") %>%
+  #   st_as_sf(coords = c("longitude", "latitude"), crs=4326)
+>>>>>>> 664e55a8331b03ba678b325b975eeef560755045
 
   search_map_df <- eventReactive(search_meta(), {
       search_meta() %>%
